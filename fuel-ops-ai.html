@@ -1,0 +1,1764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FuelOps AI — Command Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f12;
+    --bg2: #13161b;
+    --bg3: #1a1e26;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --amber: #f5a623;
+    --amber-dim: #b8760f;
+    --amber-glow: rgba(245,166,35,0.15);
+    --green: #29c77a;
+    --red: #e85050;
+    --blue: #4a9eff;
+    --text: #e8e9eb;
+    --text2: #8a8f99;
+    --text3: #555a66;
+    --mono: 'Space Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: var(--amber);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .logo-text { font-family: var(--mono); font-size: 15px; font-weight: 700; letter-spacing: -0.5px; }
+  .logo-sub { color: var(--amber); }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .live-badge {
+    background: rgba(41,199,122,0.15);
+    border: 1px solid rgba(41,199,122,0.3);
+    color: var(--green);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    letter-spacing: 1px;
+  }
+  .live-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    margin-right: 5px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* LAYOUT */
+  .main { display: flex; height: calc(100vh - 60px); overflow: hidden; }
+  .sidebar {
+    width: 220px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    padding: 20px 0;
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+  .nav-section { padding: 0 14px; margin-bottom: 24px; }
+  .nav-label {
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--text3);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    padding: 0 6px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text2);
+    font-size: 13px;
+    font-weight: 400;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+  }
+  .nav-item:hover { background: var(--bg3); color: var(--text); }
+  .nav-item.active {
+    background: var(--amber-glow);
+    border-color: rgba(245,166,35,0.25);
+    color: var(--amber);
+    font-weight: 500;
+  }
+  .nav-icon { font-size: 14px; width: 18px; text-align: center; }
+
+  .content { flex: 1; overflow-y: auto; padding: 24px; }
+
+  /* PAGE */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* DASHBOARD */
+  .page-title {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--text2);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .page-title span { color: var(--amber); }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .metric-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .metric-card.amber::before { background: var(--amber); }
+  .metric-card.green::before { background: var(--green); }
+  .metric-card.red::before { background: var(--red); }
+  .metric-card.blue::before { background: var(--blue); }
+  .metric-label { font-size: 11px; color: var(--text3); font-family: var(--mono); letter-spacing: 0.5px; margin-bottom: 10px; }
+  .metric-value { font-family: var(--mono); font-size: 26px; font-weight: 700; color: var(--text); line-height: 1; }
+  .metric-value.amber { color: var(--amber); }
+  .metric-value.green { color: var(--green); }
+  .metric-value.red { color: var(--red); }
+  .metric-delta {
+    margin-top: 8px;
+    font-size: 11px;
+    font-family: var(--mono);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .delta-up { color: var(--green); }
+  .delta-down { color: var(--red); }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .three-col { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 24px; }
+
+  .panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .panel-title { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--text2); letter-spacing: 1px; text-transform: uppercase; }
+  .panel-body { padding: 18px; }
+
+  /* CHART */
+  .chart-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .chart-bar-label { width: 60px; font-family: var(--mono); font-size: 11px; color: var(--text2); text-align: right; flex-shrink: 0; }
+  .chart-bar-track { flex: 1; background: var(--bg3); border-radius: 3px; height: 20px; overflow: hidden; }
+  .chart-bar-fill { height: 100%; border-radius: 3px; display: flex; align-items: center; padding-left: 8px; }
+  .chart-bar-fill.amber { background: var(--amber); }
+  .chart-bar-fill.amber-dim { background: var(--amber-dim); }
+  .chart-bar-val { font-family: var(--mono); font-size: 10px; font-weight: 700; color: var(--bg); }
+  .chart-bar-num { font-family: var(--mono); font-size: 11px; color: var(--text2); width: 50px; text-align: right; flex-shrink: 0; }
+
+  /* FLEET TABLE */
+  .fleet-table { width: 100%; border-collapse: collapse; }
+  .fleet-table th {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 1px;
+    text-align: left;
+    padding: 0 12px 10px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 700;
+  }
+  .fleet-table td {
+    padding: 10px 12px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text2);
+  }
+  .fleet-table tr:last-child td { border-bottom: none; }
+  .fleet-table td.mono { font-family: var(--mono); }
+  .status-badge {
+    font-size: 10px;
+    font-family: var(--mono);
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .status-ok { background: rgba(41,199,122,0.15); color: var(--green); }
+  .status-warn { background: rgba(245,166,35,0.15); color: var(--amber); }
+  .status-bad { background: rgba(232,80,80,0.15); color: var(--red); }
+
+  /* CALCULATOR PAGE */
+  .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 11px; font-family: var(--mono); color: var(--text2); letter-spacing: 0.5px; margin-bottom: 6px; display: block; }
+  .form-input, .form-select {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 9px 12px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-input:focus, .form-select:focus { border-color: var(--amber); }
+  .form-select option { background: var(--bg2); }
+  .result-box {
+    background: var(--amber-glow);
+    border: 1px solid rgba(245,166,35,0.25);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+  }
+  .result-box .result-label { font-family: var(--mono); font-size: 11px; color: var(--amber); letter-spacing: 1px; margin-bottom: 8px; }
+  .result-box .result-val { font-family: var(--mono); font-size: 36px; font-weight: 700; color: var(--amber); }
+  .result-box .result-sub { font-size: 12px; color: var(--text2); margin-top: 4px; }
+  .btn {
+    background: var(--amber);
+    color: var(--bg);
+    border: none;
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: opacity 0.15s;
+    width: 100%;
+  }
+  .btn:hover { opacity: 0.9; }
+  .btn-secondary {
+    background: transparent;
+    color: var(--amber);
+    border: 1px solid rgba(245,166,35,0.35);
+  }
+  .btn-secondary:hover { background: var(--amber-glow); }
+
+  .calc-results { margin-top: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .mini-result {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    text-align: center;
+  }
+  .mini-label { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 0.5px; margin-bottom: 6px; }
+  .mini-val { font-family: var(--mono); font-size: 18px; font-weight: 700; }
+
+  /* AI ADVISOR */
+  .ai-layout { display: grid; grid-template-columns: 1fr 320px; gap: 20px; height: calc(100vh - 160px); }
+  .chat-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; }
+  .chat-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .ai-avatar {
+    width: 30px; height: 30px;
+    background: var(--amber);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .chat-title { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--text); }
+  .chat-sub { font-size: 11px; color: var(--text2); }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+  .msg { display: flex; gap: 10px; }
+  .msg.user { flex-direction: row-reverse; }
+  .msg-avatar {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+    font-family: var(--mono);
+    font-weight: 700;
+    color: var(--text2);
+  }
+  .msg.ai .msg-avatar { background: var(--amber-glow); border-color: rgba(245,166,35,0.3); color: var(--amber); }
+  .msg-bubble {
+    max-width: 80%;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.6;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .msg.user .msg-bubble { background: var(--amber-glow); border-color: rgba(245,166,35,0.25); }
+  .chat-input-row {
+    padding: 14px 18px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+  }
+  .chat-input {
+    flex: 1;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 9px 12px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    outline: none;
+    resize: none;
+    transition: border-color 0.15s;
+    height: 40px;
+    max-height: 120px;
+  }
+  .chat-input:focus { border-color: var(--amber); }
+  .send-btn {
+    background: var(--amber);
+    border: none;
+    border-radius: 6px;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+    transition: opacity 0.15s;
+  }
+  .send-btn:hover { opacity: 0.85; }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* QUICK ACTIONS */
+  .quick-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; overflow-y: auto; }
+  .quick-title { font-family: var(--mono); font-size: 11px; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 14px; }
+  .quick-btn {
+    display: block;
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: var(--text2);
+    font-size: 12px;
+    cursor: pointer;
+    text-align: left;
+    margin-bottom: 8px;
+    transition: all 0.15s;
+    font-family: var(--sans);
+  }
+  .quick-btn:hover { border-color: var(--amber); color: var(--amber); background: var(--amber-glow); }
+  .context-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    margin-top: 14px;
+  }
+  .context-title { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 1px; margin-bottom: 10px; }
+  .context-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .context-key { font-size: 12px; color: var(--text2); }
+  .context-val { font-family: var(--mono); font-size: 12px; color: var(--amber); }
+
+  /* ALERTS PAGE */
+  .alert-item {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 3px solid;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .alert-item.warn { border-left-color: var(--amber); }
+  .alert-item.crit { border-left-color: var(--red); }
+  .alert-item.info { border-left-color: var(--blue); }
+  .alert-icon { font-size: 18px; flex-shrink: 0; }
+  .alert-content { flex: 1; }
+  .alert-title { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .alert-body { font-size: 12px; color: var(--text2); line-height: 1.5; }
+  .alert-meta { font-family: var(--mono); font-size: 10px; color: var(--text3); margin-top: 6px; }
+  .alert-actions { display: flex; gap: 8px; align-items: center; }
+  .small-btn {
+    font-size: 11px;
+    font-family: var(--mono);
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--text2);
+    transition: all 0.15s;
+  }
+  .small-btn:hover { border-color: var(--amber); color: var(--amber); background: var(--amber-glow); }
+
+  /* TYPING */
+  .typing-dots { display: flex; gap: 4px; padding: 4px 0; align-items: center; }
+  .typing-dots span {
+    width: 6px; height: 6px;
+    background: var(--amber);
+    border-radius: 50%;
+    animation: typing 1.2s ease-in-out infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typing { 0%,100%{opacity:0.3;transform:translateY(0)} 50%{opacity:1;transform:translateY(-3px)} }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  @media (max-width: 900px) {
+    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    .two-col, .calc-grid, .ai-layout { grid-template-columns: 1fr; }
+    .sidebar { width: 180px; }
+  }
+
+  /* CONTAINER TRACKING */
+  .ct-layout { display: grid; grid-template-columns: 1fr 320px; gap: 16px; }
+  .map-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; position: relative; }
+  .map-panel svg { display: block; width: 100%; height: auto; }
+  .map-toolbar {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .map-legend { display: flex; gap: 14px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 10px; color: var(--text2); letter-spacing: 0.5px; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  .ct-list { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
+  .ct-list-header { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .ct-list-title { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--text2); letter-spacing: 1px; text-transform: uppercase; }
+  .ct-list-body { flex: 1; overflow-y: auto; }
+  .ct-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+    border-left: 3px solid transparent;
+  }
+  .ct-item:last-child { border-bottom: none; }
+  .ct-item:hover { background: var(--bg3); }
+  .ct-item.selected { background: var(--amber-glow); border-left-color: var(--amber); }
+  .ct-item-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .ct-id { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--amber); }
+  .ct-name { font-size: 12px; color: var(--text); font-weight: 500; margin-bottom: 2px; }
+  .ct-route-text { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ct-progress-bar { margin-top: 6px; background: var(--bg3); border-radius: 2px; height: 3px; overflow: hidden; }
+  .ct-progress-fill { height: 100%; border-radius: 2px; }
+  .ct-progress-fill.transit { background: var(--green); }
+  .ct-progress-fill.delayed { background: var(--amber); }
+  .ct-progress-fill.docked { background: var(--blue); }
+  .ct-progress-fill.loading { background: var(--text3); }
+
+  .ct-detail {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-top: 16px;
+    overflow: hidden;
+    display: none;
+  }
+  .ct-detail.visible { display: block; }
+  .ct-detail-header { padding: 12px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .ct-detail-title { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--text); }
+  .ct-detail-body { padding: 16px 18px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .ct-stat { text-align: center; }
+  .ct-stat-label { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 0.5px; margin-bottom: 5px; }
+  .ct-stat-val { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--text); }
+
+  .ship-tooltip {
+    position: absolute;
+    background: var(--bg);
+    border: 1px solid var(--amber);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 10;
+    min-width: 160px;
+    line-height: 1.7;
+  }
+  .ship-tooltip.visible { opacity: 1; }
+
+  @keyframes vesselPulse { 0%,100%{r:5;opacity:1} 50%{r:8;opacity:0.6} }
+  @keyframes routeDash { to { stroke-dashoffset: -40; } }
+  @keyframes portPulse { 0%,100%{opacity:0.6} 50%{opacity:1} }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">⛽</div>
+    <div class="logo-text">FUEL<span class="logo-sub">OPS</span> · AI</div>
+  </div>
+  <div class="header-right">
+    <div class="live-badge"><span class="live-dot"></span>LIVE MONITORING</div>
+    <div style="font-family:var(--mono);font-size:11px;color:var(--text3)" id="clock">--:--:--</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="sidebar">
+    <div class="nav-section">
+      <div class="nav-label">Operations</div>
+      <div class="nav-item active" onclick="showPage('dashboard',this)">
+        <span class="nav-icon">📊</span> Dashboard
+      </div>
+      <div class="nav-item" onclick="showPage('fleet',this)">
+        <span class="nav-icon">🚛</span> Fleet Status
+      </div>
+      <div class="nav-item" onclick="showPage('containers',this)">
+        <span class="nav-icon">🚢</span> Ship Tracking
+      </div>
+      <div class="nav-item" onclick="showPage('alerts',this)">
+        <span class="nav-icon">⚠️</span> Alerts
+        <span style="margin-left:auto;background:var(--red);color:white;font-family:var(--mono);font-size:10px;padding:1px 6px;border-radius:10px;">3</span>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Analysis</div>
+      <div class="nav-item" onclick="showPage('calculator',this)">
+        <span class="nav-icon">🧮</span> Calculator
+      </div>
+      <div class="nav-item" onclick="showPage('advisor',this)">
+        <span class="nav-icon">🤖</span> AI Advisor
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Settings</div>
+      <div class="nav-item" onclick="showPage('config',this)">
+        <span class="nav-icon">⚙️</span> Configuration
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-title">// <span>Dashboard</span> — Live Operations</div>
+      <div class="metrics-grid">
+        <div class="metric-card amber">
+          <div class="metric-label">TOTAL FUEL DISPENSED</div>
+          <div class="metric-value amber" id="m-dispensed">124,860</div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:4px;">gallons this month</div>
+          <div class="metric-delta"><span class="delta-up">▲ 8.3%</span><span style="color:var(--text3);margin-left:4px;">vs last month</span></div>
+        </div>
+        <div class="metric-card green">
+          <div class="metric-label">FUEL COST TODAY</div>
+          <div class="metric-value" style="color:var(--green)">$18,420</div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:4px;">avg $3.42/gal</div>
+          <div class="metric-delta"><span class="delta-down">▼ 2.1%</span><span style="color:var(--text3);margin-left:4px;">vs yesterday</span></div>
+        </div>
+        <div class="metric-card blue">
+          <div class="metric-label">ACTIVE VEHICLES</div>
+          <div class="metric-value" style="color:var(--blue)">47 / 62</div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:4px;">15 in maintenance</div>
+          <div class="metric-delta"><span class="delta-up">▲ 75.8%</span><span style="color:var(--text3);margin-left:4px;">fleet utilization</span></div>
+        </div>
+        <div class="metric-card red">
+          <div class="metric-label">ANOMALIES DETECTED</div>
+          <div class="metric-value" style="color:var(--red)">3</div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:4px;">requires review</div>
+          <div class="metric-delta"><span style="color:var(--amber)">▲ 2</span><span style="color:var(--text3);margin-left:4px;">new today</span></div>
+        </div>
+      </div>
+
+      <div class="three-col">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Consumption by Vehicle Type — This Week</div>
+          </div>
+          <div class="panel-body">
+            <div class="chart-bar-row">
+              <div class="chart-bar-label">Heavy</div>
+              <div class="chart-bar-track"><div class="chart-bar-fill amber" style="width:82%"><span class="chart-bar-val">41,200</span></div></div>
+              <div class="chart-bar-num">gal</div>
+            </div>
+            <div class="chart-bar-row">
+              <div class="chart-bar-label">Medium</div>
+              <div class="chart-bar-track"><div class="chart-bar-fill amber" style="width:56%"><span class="chart-bar-val">28,100</span></div></div>
+              <div class="chart-bar-num">gal</div>
+            </div>
+            <div class="chart-bar-row">
+              <div class="chart-bar-label">Light</div>
+              <div class="chart-bar-track"><div class="chart-bar-fill amber-dim" style="width:38%"><span class="chart-bar-val">19,000</span></div></div>
+              <div class="chart-bar-num">gal</div>
+            </div>
+            <div class="chart-bar-row">
+              <div class="chart-bar-label">Equip.</div>
+              <div class="chart-bar-track"><div class="chart-bar-fill amber-dim" style="width:24%"><span class="chart-bar-val">12,000</span></div></div>
+              <div class="chart-bar-num">gal</div>
+            </div>
+            <div class="chart-bar-row">
+              <div class="chart-bar-label">Special</div>
+              <div class="chart-bar-track"><div class="chart-bar-fill amber-dim" style="width:10%"><span class="chart-bar-val">5,100</span></div></div>
+              <div class="chart-bar-num">gal</div>
+            </div>
+            <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+              <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                <span style="font-size:12px;color:var(--text2)">Efficiency vs Target</span>
+                <span style="font-family:var(--mono);font-size:12px;color:var(--green)">+4.2% above</span>
+              </div>
+              <div style="background:var(--bg3);border-radius:4px;height:8px;overflow:hidden;">
+                <div style="width:72%;height:100%;background:var(--green);border-radius:4px;"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-top:4px;">
+                <span style="font-family:var(--mono);font-size:10px;color:var(--text3)">0%</span>
+                <span style="font-family:var(--mono);font-size:10px;color:var(--text3)">Target: 68%</span>
+                <span style="font-family:var(--mono);font-size:10px;color:var(--text3)">100%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="panel" style="margin-bottom:16px;">
+            <div class="panel-header"><div class="panel-title">Price Tracker</div></div>
+            <div class="panel-body">
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:12px;color:var(--text2)">Diesel #2</span>
+                  <span style="font-family:var(--mono);font-size:14px;color:var(--amber)">$3.42</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:12px;color:var(--text2)">Unleaded 87</span>
+                  <span style="font-family:var(--mono);font-size:14px;color:var(--text)">$3.18</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:12px;color:var(--text2)">Premium 91</span>
+                  <span style="font-family:var(--mono);font-size:14px;color:var(--text)">$3.65</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:12px;color:var(--text2)">DEF Fluid</span>
+                  <span style="font-family:var(--mono);font-size:14px;color:var(--text)">$0.89</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><div class="panel-title">Tank Levels</div></div>
+            <div class="panel-body">
+              <div style="margin-bottom:12px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                  <span style="font-size:12px;color:var(--text2)">Tank A — Diesel</span>
+                  <span style="font-family:var(--mono);font-size:11px;color:var(--green)">78%</span>
+                </div>
+                <div style="background:var(--bg3);border-radius:3px;height:6px;"><div style="width:78%;height:100%;background:var(--green);border-radius:3px;"></div></div>
+              </div>
+              <div style="margin-bottom:12px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                  <span style="font-size:12px;color:var(--text2)">Tank B — Unleaded</span>
+                  <span style="font-family:var(--mono);font-size:11px;color:var(--amber)">34%</span>
+                </div>
+                <div style="background:var(--bg3);border-radius:3px;height:6px;"><div style="width:34%;height:100%;background:var(--amber);border-radius:3px;"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                  <span style="font-size:12px;color:var(--text2)">Tank C — Premium</span>
+                  <span style="font-family:var(--mono);font-size:11px;color:var(--red)">12%</span>
+                </div>
+                <div style="background:var(--bg3);border-radius:3px;height:6px;"><div style="width:12%;height:100%;background:var(--red);border-radius:3px;"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FLEET STATUS -->
+    <div class="page" id="page-fleet">
+      <div class="page-title">// <span>Fleet Status</span> — Vehicle Monitoring</div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Active Fleet — 62 Units</div>
+          <div style="display:flex;gap:8px;">
+            <span style="font-size:11px;font-family:var(--mono);color:var(--green)">● 47 Active</span>
+            <span style="font-size:11px;font-family:var(--mono);color:var(--amber)">● 10 Warning</span>
+            <span style="font-size:11px;font-family:var(--mono);color:var(--red)">● 5 Critical</span>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="fleet-table">
+            <thead>
+              <tr>
+                <th>UNIT ID</th>
+                <th>TYPE</th>
+                <th>DRIVER</th>
+                <th>MPG (ACT)</th>
+                <th>MPG (TGT)</th>
+                <th>FUEL USED</th>
+                <th>MILEAGE</th>
+                <th>STATUS</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="mono" style="color:var(--amber)">TR-001</td>
+                <td>Heavy Truck</td>
+                <td>J. Martinez</td>
+                <td class="mono">6.8</td>
+                <td class="mono">7.0</td>
+                <td class="mono">430 gal</td>
+                <td class="mono">2,924 mi</td>
+                <td><span class="status-badge status-ok">OPTIMAL</span></td>
+              </tr>
+              <tr>
+                <td class="mono" style="color:var(--amber)">TR-008</td>
+                <td>Heavy Truck</td>
+                <td>S. Thompson</td>
+                <td class="mono">5.9</td>
+                <td class="mono">7.0</td>
+                <td class="mono">510 gal</td>
+                <td class="mono">3,009 mi</td>
+                <td><span class="status-badge status-warn">REVIEW</span></td>
+              </tr>
+              <tr>
+                <td class="mono" style="color:var(--amber)">VN-012</td>
+                <td>Medium Van</td>
+                <td>A. Chen</td>
+                <td class="mono">14.2</td>
+                <td class="mono">13.5</td>
+                <td class="mono">180 gal</td>
+                <td class="mono">2,556 mi</td>
+                <td><span class="status-badge status-ok">OPTIMAL</span></td>
+              </tr>
+              <tr>
+                <td class="mono" style="color:var(--amber)">TR-022</td>
+                <td>Heavy Truck</td>
+                <td>K. Johnson</td>
+                <td class="mono">4.8</td>
+                <td class="mono">7.0</td>
+                <td class="mono">620 gal</td>
+                <td class="mono">2,976 mi</td>
+                <td><span class="status-badge status-bad">CRITICAL</span></td>
+              </tr>
+              <tr>
+                <td class="mono" style="color:var(--amber)">LT-005</td>
+                <td>Light Truck</td>
+                <td>M. Williams</td>
+                <td class="mono">18.7</td>
+                <td class="mono">18.0</td>
+                <td class="mono">95 gal</td>
+                <td class="mono">1,777 mi</td>
+                <td><span class="status-badge status-ok">OPTIMAL</span></td>
+              </tr>
+              <tr>
+                <td class="mono" style="color:var(--amber)">EQ-003</td>
+                <td>Equipment</td>
+                <td>R. Davis</td>
+                <td class="mono">3.1</td>
+                <td class="mono">3.5</td>
+                <td class="mono">290 gal</td>
+                <td class="mono">899 mi</td>
+                <td><span class="status-badge status-warn">REVIEW</span></td>
+              </tr>
+              <tr>
+                <td class="mono" style="color:var(--amber)">VN-019</td>
+                <td>Medium Van</td>
+                <td>L. Garcia</td>
+                <td class="mono">13.8</td>
+                <td class="mono">13.5</td>
+                <td class="mono">165 gal</td>
+                <td class="mono">2,277 mi</td>
+                <td><span class="status-badge status-ok">OPTIMAL</span></td>
+              </tr>
+              <tr>
+                <td class="mono" style="color:var(--amber)">TR-031</td>
+                <td>Heavy Truck</td>
+                <td>B. Anderson</td>
+                <td class="mono">6.2</td>
+                <td class="mono">7.0</td>
+                <td class="mono">475 gal</td>
+                <td class="mono">2,945 mi</td>
+                <td><span class="status-badge status-warn">REVIEW</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALERTS -->
+    <div class="page" id="page-alerts">
+      <div class="page-title">// <span>Alerts</span> — Active Anomalies</div>
+      <div class="alert-item crit">
+        <div class="alert-icon">🚨</div>
+        <div class="alert-content">
+          <div class="alert-title">CRITICAL — Unit TR-022: Excessive Fuel Consumption</div>
+          <div class="alert-body">Vehicle TR-022 averaging 4.8 MPG vs target 7.0 MPG (−31.4%). Potential engine fault, fuel leak, or driver behavior issue. 620 gallons consumed — 190 gallons above fleet average for same route type.</div>
+          <div class="alert-meta">DETECTED: Today 09:14 AM · Unit: TR-022 · Driver: K. Johnson · Route: I-94 Corridor</div>
+        </div>
+        <div class="alert-actions">
+          <button class="small-btn" onclick="aiDiagnose('TR-022 consuming 4.8 MPG vs 7.0 MPG target')">AI Diagnose</button>
+          <button class="small-btn">Dismiss</button>
+        </div>
+      </div>
+      <div class="alert-item warn">
+        <div class="alert-icon">⚠️</div>
+        <div class="alert-content">
+          <div class="alert-title">WARNING — Tank C (Premium): Low Level 12%</div>
+          <div class="alert-body">Tank C premium fuel storage at 12% capacity (approximately 1,800 gallons remaining). At current consumption rates, estimated depletion in 2.4 days. Schedule resupply to avoid service disruption.</div>
+          <div class="alert-meta">DETECTED: Today 07:30 AM · Tank: C · Capacity: 15,000 gal · Current: 1,800 gal</div>
+        </div>
+        <div class="alert-actions">
+          <button class="small-btn" onclick="aiDiagnose('Tank C premium fuel at 12% — when should we reorder?')">AI Advise</button>
+          <button class="small-btn">Dismiss</button>
+        </div>
+      </div>
+      <div class="alert-item warn">
+        <div class="alert-icon">⚠️</div>
+        <div class="alert-content">
+          <div class="alert-title">WARNING — Tank B (Unleaded): Approaching Low Threshold</div>
+          <div class="alert-body">Tank B at 34% capacity (approximately 5,100 gallons). Trending toward low threshold within 5-6 days based on current fleet demand. Consider scheduling resupply within 48 hours.</div>
+          <div class="alert-meta">DETECTED: Today 06:45 AM · Tank: B · Capacity: 15,000 gal · Current: 5,100 gal</div>
+        </div>
+        <div class="alert-actions">
+          <button class="small-btn" onclick="aiDiagnose('Tank B unleaded at 34% and declining — recommend resupply strategy')">AI Plan</button>
+          <button class="small-btn">Dismiss</button>
+        </div>
+      </div>
+      <div class="alert-item info">
+        <div class="alert-icon">ℹ️</div>
+        <div class="alert-content">
+          <div class="alert-title">INFO — Monthly Budget Forecast Updated</div>
+          <div class="alert-body">AI forecast model updated. Projected monthly spend: $241,400 (+3.2% vs budget). Key driver: diesel price uptick offset partially by improved fleet efficiency score of 72%.</div>
+          <div class="alert-meta">GENERATED: Today 06:00 AM · Source: AI Forecast Engine · Confidence: 87%</div>
+        </div>
+        <div class="alert-actions">
+          <button class="small-btn" onclick="showPage('advisor', document.querySelector('.nav-item:nth-child(5)'))">View Analysis</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTAINER TRACKING -->
+    <div class="page" id="page-containers">
+      <div class="page-title">// <span>Ship Tracking</span> — Global Fuel Container Routes</div>
+
+      <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
+        <div class="metric-card blue">
+          <div class="metric-label">TOTAL VESSELS</div>
+          <div class="metric-value" style="color:var(--blue)">8</div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:4px;">active containers</div>
+          <div class="metric-delta"><span style="color:var(--text2)">across 6 sea routes</span></div>
+        </div>
+        <div class="metric-card green">
+          <div class="metric-label">IN TRANSIT</div>
+          <div class="metric-value" style="color:var(--green)">5</div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:4px;">on schedule</div>
+          <div class="metric-delta"><span class="delta-up">▲ 62%</span><span style="color:var(--text3);margin-left:4px;">avg route progress</span></div>
+        </div>
+        <div class="metric-card amber">
+          <div class="metric-label">DELAYED / DOCKED</div>
+          <div class="metric-value amber">3</div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:4px;">1 delayed · 1 docked · 1 loading</div>
+          <div class="metric-delta"><span style="color:var(--amber)">⚠ FST-004 weather delay</span></div>
+        </div>
+        <div class="metric-card green">
+          <div class="metric-label">TOTAL CARGO</div>
+          <div class="metric-value" style="color:var(--green);font-size:20px;">445,000</div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:4px;">metric tons in transit</div>
+          <div class="metric-delta"><span style="color:var(--text2)">est. value $318M</span></div>
+        </div>
+      </div>
+
+      <div class="ct-layout">
+        <div>
+          <div class="map-panel">
+            <div class="map-toolbar">
+              <div class="panel-title">Live Route Map — Fuel Tanker Network</div>
+              <div class="map-legend">
+                <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>In Transit</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Delayed</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>Docked</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--text3)"></div>Loading</div>
+              </div>
+            </div>
+            <div style="position:relative;">
+              <svg id="world-map" viewBox="0 0 860 450" xmlns="http://www.w3.org/2000/svg" style="background:#0a1520;">
+                <defs>
+                  <filter id="glow-green">
+                    <feGaussianBlur stdDeviation="2" result="blur"/>
+                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                  </filter>
+                  <filter id="glow-amber">
+                    <feGaussianBlur stdDeviation="2" result="blur"/>
+                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                  </filter>
+                  <marker id="arr" markerWidth="4" markerHeight="4" refX="2" refY="2" orient="auto">
+                    <path d="M0,0 L4,2 L0,4 Z" fill="rgba(255,255,255,0.3)"/>
+                  </marker>
+                </defs>
+
+                <!-- OCEAN GRID LINES -->
+                <g stroke="rgba(74,158,255,0.05)" stroke-width="0.5">
+                  <line x1="0" y1="112" x2="860" y2="112"/>
+                  <line x1="0" y1="225" x2="860" y2="225"/>
+                  <line x1="0" y1="338" x2="860" y2="338"/>
+                  <line x1="215" y1="0" x2="215" y2="450"/>
+                  <line x1="430" y1="0" x2="430" y2="450"/>
+                  <line x1="645" y1="0" x2="645" y2="450"/>
+                </g>
+
+                <!-- CONTINENTS -->
+                <!-- NORTH AMERICA -->
+                <path d="M48,78 L102,58 L175,62 L228,82 L256,118 L268,162 L258,212 L238,260 L215,300 L192,330 L168,318 L138,284 L106,248 L78,194 L52,148 Z" fill="#1e2535" stroke="#2a3248" stroke-width="0.8"/>
+                <!-- Florida -->
+                <path d="M218,300 L232,312 L226,336 L210,338 L207,316 Z" fill="#1e2535" stroke="#2a3248" stroke-width="0.8"/>
+                <!-- Baja -->
+                <path d="M128,204 L138,198 L145,224 L136,240 L126,228 Z" fill="#1e2535" stroke="#2a3248" stroke-width="0.8"/>
+                <!-- Alaska -->
+                <path d="M48,78 L35,66 L55,52 L92,50 L110,62 L100,72 Z" fill="#1e2535" stroke="#2a3248" stroke-width="0.8"/>
+                <!-- GREENLAND -->
+                <path d="M190,42 L250,36 L272,56 L258,76 L218,80 L190,65 Z" fill="#1e2535" stroke="#2a3248" stroke-width="0.8"/>
+
+                <!-- SOUTH AMERICA -->
+                <path d="M170,320 L218,306 L256,322 L278,362 L282,405 L264,442 L234,448 L200,440 L174,410 L162,368 L164,340 Z" fill="#1e2535" stroke="#2a3248" stroke-width="0.8"/>
+
+                <!-- EUROPE -->
+                <path d="M368,90 L422,80 L462,88 L482,104 L480,130 L464,152 L440,164 L414,158 L390,148 L370,128 L364,108 Z" fill="#1e2535" stroke="#2a3248" stroke-width="0.8"/>
+                <!-- Scandinavia -->
+                <path d="M422,64 L444,58 L458,72 L448,90 L428,88 Z" fill="#1e2535" stroke="#2a3248" stroke-width="0.8"/>
+                <!-- Iberian peninsula -->
+                <path d="M364,140 L392,132 L400,152 L382,168 L362,158 Z" fill="#1e2535" stroke="#2a3248" stroke-width="0.8"/>
+                <!-- Britain -->
+                <path d="M364,92 L384,86 L390,108 L374,118 L360,110 Z" fill="#1e2535" stroke="#2a3248" stroke-width="0.8"/>
+
+                <!-- AFRICA -->
+                <path d="M380,182 L436,172 L492,180 L508,212 L510,262 L500,332 L480,392 L458,430 L430,442 L404,430 L384,386 L372,322 L368,260 L372,212 Z" fill="#1e2535" stroke="#2a3248" stroke-width="0.8"/>
+                <!-- Madagascar -->
+                <path d="M494,372 L505,362 L512,382 L507,402 L494,400 Z" fill="#1e2535" stroke="#2a3248" stroke-width="0.8"/>
+
+                <!-- MIDDLE EAST / ARABIA -->
+                <path d="M490,160 L530,150 L568,156 L582,192 L574,230 L550,242 L522,238 L498,216 L490,192 Z" fill="#1e2535" stroke="#2a3248" stroke-width="0.8"/>
+                <!-- Iran/Iraq -->
+                <path d="M490,138 L534,128 L570,132 L598,148 L605,168 L590,190 L568,194 L548,186 L528,168 L492,158 Z" fill="#1e2535" stroke="#2a3248" stroke-width="0.8"/>
+
+                <!-- INDIAN SUBCONTINENT -->
+                <path d="M540,192 L574,180 L588,210 L584,250 L568,280 L552,290 L534,270 L524,236 L530,210 Z" fill="#1e2535" stroke="#2a3248" stroke-width="0.8"/>
+                <!-- Sri Lanka -->
+                <path d="M566,292 L574,286 L578,298 L568,304 Z" fill="#1e2535" stroke="#2a3248" stroke-width="0.8"/>
+
+                <!-- ASIA MAIN -->
+                <path d="M480,70 L550,60 L620,62 L690,66 L748,76 L802,92 L832,120 L830,162 L808,198 L778,218 L748,228 L720,220 L696,202 L680,212 L660,226 L644,218 L628,200 L610,194 L598,178 L590,156 L570,148 L548,150 L530,152 L510,142 L490,130 L480,108 Z" fill="#1e2535" stroke="#2a3248" stroke-width="0.8"/>
+                <!-- Korean peninsula -->
+                <path d="M738,168 L750,162 L758,176 L748,188 L736,182 Z" fill="#1e2535" stroke="#2a3248" stroke-width="0.8"/>
+                <!-- Japan -->
+                <path d="M750,145 L768,138 L778,156 L770,172 L752,172 L748,158 Z" fill="#1e2535" stroke="#2a3248" stroke-width="0.8"/>
+
+                <!-- SE ASIA PENINSULA -->
+                <path d="M644,218 L660,228 L670,260 L660,284 L642,270 L632,246 L636,228 Z" fill="#1e2535" stroke="#2a3248" stroke-width="0.8"/>
+                <!-- Sumatra -->
+                <path d="M638,284 L672,272 L694,282 L692,298 L670,306 L642,298 Z" fill="#1e2535" stroke="#2a3248" stroke-width="0.8"/>
+                <!-- Java/Borneo (simplified) -->
+                <path d="M668,302 L712,296 L722,310 L706,318 L672,312 Z" fill="#1e2535" stroke="#2a3248" stroke-width="0.8"/>
+                <!-- Philippines -->
+                <path d="M724,210 L736,204 L742,220 L730,228 L720,222 Z" fill="#1e2535" stroke="#2a3248" stroke-width="0.8"/>
+
+                <!-- AUSTRALIA -->
+                <path d="M664,342 L736,326 L802,344 L828,382 L820,422 L792,440 L750,444 L706,434 L670,406 L658,372 Z" fill="#1e2535" stroke="#2a3248" stroke-width="0.8"/>
+                <!-- New Zealand -->
+                <path d="M820,394 L836,388 L840,412 L826,424 L814,416 Z" fill="#1e2535" stroke="#2a3248" stroke-width="0.8"/>
+
+                <!-- SHIPPING ROUTE PATHS (reference paths for animation) -->
+                <!-- R1: Persian Gulf → Cape of Good Hope → Rotterdam (Atlantic Horizon) -->
+                <path id="route-r1" d="M 555,210 C 530,280 490,360 432,440 C 395,435 365,350 362,280 C 358,215 385,158 416,130" fill="none" stroke="rgba(41,199,122,0.3)" stroke-width="1.5" stroke-dasharray="6,4">
+                  <animate attributeName="stroke-dashoffset" from="0" to="-40" dur="2s" repeatCount="indefinite"/>
+                </path>
+                <!-- R2: Persian Gulf → Strait of Malacca → Yokohama (Pacific Pioneer) -->
+                <path id="route-r2" d="M 555,210 C 578,248 638,268 670,278 C 700,268 732,228 762,166" fill="none" stroke="rgba(41,199,122,0.3)" stroke-width="1.5" stroke-dasharray="6,4">
+                  <animate attributeName="stroke-dashoffset" from="0" to="-40" dur="2s" repeatCount="indefinite"/>
+                </path>
+                <!-- R3: Houston → Rotterdam transatlantic (Gulf Express) -->
+                <path id="route-r3" d="M 168,240 C 140,198 88,170 75,152 C 200,128 306,120 416,130" fill="none" stroke="rgba(41,199,122,0.3)" stroke-width="1.5" stroke-dasharray="6,4">
+                  <animate attributeName="stroke-dashoffset" from="0" to="-40" dur="2s" repeatCount="indefinite"/>
+                </path>
+                <!-- R4: Lagos → Rotterdam (West African Star DELAYED) -->
+                <path id="route-r4" d="M 412,296 C 395,258 382,218 386,188 C 395,158 406,140 416,130" fill="none" stroke="rgba(245,166,35,0.3)" stroke-width="1.5" stroke-dasharray="6,4">
+                  <animate attributeName="stroke-dashoffset" from="0" to="-40" dur="3s" repeatCount="indefinite"/>
+                </path>
+                <!-- R5: Caracas → Houston (Caribbean Carrier DOCKED) -->
+                <path id="route-r5" d="M 220,298 C 198,278 180,258 168,240" fill="none" stroke="rgba(74,158,255,0.3)" stroke-width="1.5" stroke-dasharray="4,4"/>
+                <!-- R6: Persian Gulf → Suez → Rotterdam (Suez Star) -->
+                <path id="route-r6" d="M 555,210 C 532,196 512,185 492,176 C 468,162 445,140 416,130" fill="none" stroke="rgba(41,199,122,0.3)" stroke-width="1.5" stroke-dasharray="6,4">
+                  <animate attributeName="stroke-dashoffset" from="0" to="-40" dur="2s" repeatCount="indefinite"/>
+                </path>
+                <!-- R7: Doha → Malacca → Shanghai (Eastern Dragon) -->
+                <path id="route-r7" d="M 555,210 C 576,248 640,266 670,278 C 694,265 718,226 740,192" fill="none" stroke="rgba(41,199,122,0.3)" stroke-width="1.5" stroke-dasharray="6,4">
+                  <animate attributeName="stroke-dashoffset" from="0" to="-40" dur="2s" repeatCount="indefinite"/>
+                </path>
+                <!-- R8: New Orleans → Rotterdam (Nordic Frost LOADING) -->
+                <path id="route-r8" d="M 182,242 C 155,206 90,172 74,153 C 195,132 306,122 416,130" fill="none" stroke="rgba(85,90,102,0.25)" stroke-width="1.5" stroke-dasharray="4,4"/>
+
+                <!-- PORT MARKERS -->
+                <g id="ports">
+                  <!-- Persian Gulf -->
+                  <circle cx="555" cy="210" r="5" fill="none" stroke="rgba(245,166,35,0.8)" stroke-width="1.5">
+                    <animate attributeName="r" values="4;7;4" dur="3s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="1;0.4;1" dur="3s" repeatCount="indefinite"/>
+                  </circle>
+                  <circle cx="555" cy="210" r="3" fill="#f5a623"/>
+                  <text x="560" y="205" font-size="8" fill="rgba(245,166,35,0.9)" font-family="Space Mono,monospace">PERSIAN GULF</text>
+
+                  <!-- Rotterdam -->
+                  <circle cx="416" cy="130" r="4" fill="none" stroke="rgba(74,158,255,0.8)" stroke-width="1.5">
+                    <animate attributeName="r" values="3;6;3" dur="2.5s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="1;0.4;1" dur="2.5s" repeatCount="indefinite"/>
+                  </circle>
+                  <circle cx="416" cy="130" r="2.5" fill="#4a9eff"/>
+                  <text x="420" y="125" font-size="8" fill="rgba(74,158,255,0.9)" font-family="Space Mono,monospace">ROTTERDAM</text>
+
+                  <!-- Singapore/Malacca -->
+                  <circle cx="670" cy="278" r="3" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1">
+                    <animate attributeName="opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite"/>
+                  </circle>
+                  <circle cx="670" cy="278" r="2" fill="rgba(255,255,255,0.7)"/>
+                  <text x="674" y="274" font-size="7.5" fill="rgba(255,255,255,0.6)" font-family="Space Mono,monospace">SINGAPORE</text>
+
+                  <!-- Houston -->
+                  <circle cx="168" cy="240" r="3" fill="none" stroke="rgba(74,158,255,0.6)" stroke-width="1"/>
+                  <circle cx="168" cy="240" r="2" fill="#4a9eff"/>
+                  <text x="148" y="252" font-size="7.5" fill="rgba(74,158,255,0.8)" font-family="Space Mono,monospace">HOUSTON</text>
+
+                  <!-- Lagos -->
+                  <circle cx="412" cy="296" r="3" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1"/>
+                  <circle cx="412" cy="296" r="2" fill="rgba(255,255,255,0.5)"/>
+                  <text x="416" y="292" font-size="7.5" fill="rgba(255,255,255,0.5)" font-family="Space Mono,monospace">LAGOS</text>
+
+                  <!-- Caracas -->
+                  <circle cx="220" cy="298" r="2.5" fill="rgba(255,255,255,0.4)"/>
+                  <text x="222" y="294" font-size="7" fill="rgba(255,255,255,0.4)" font-family="Space Mono,monospace">CARACAS</text>
+
+                  <!-- Yokohama -->
+                  <circle cx="762" cy="166" r="3" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1"/>
+                  <circle cx="762" cy="166" r="2" fill="rgba(255,255,255,0.5)"/>
+                  <text x="766" y="162" font-size="7.5" fill="rgba(255,255,255,0.5)" font-family="Space Mono,monospace">YOKOHAMA</text>
+
+                  <!-- Shanghai -->
+                  <circle cx="740" cy="192" r="2.5" fill="rgba(255,255,255,0.4)"/>
+                  <text x="744" y="188" font-size="7" fill="rgba(255,255,255,0.4)" font-family="Space Mono,monospace">SHANGHAI</text>
+
+                  <!-- Cape of Good Hope -->
+                  <circle cx="432" cy="440" r="2.5" fill="rgba(255,255,255,0.3)"/>
+                  <text x="436" y="438" font-size="7" fill="rgba(255,255,255,0.35)" font-family="Space Mono,monospace">CAPE</text>
+
+                  <!-- Suez -->
+                  <circle cx="492" cy="176" r="2.5" fill="rgba(255,255,255,0.35)"/>
+                  <text x="496" y="172" font-size="7" fill="rgba(255,255,255,0.4)" font-family="Space Mono,monospace">SUEZ</text>
+
+                  <!-- New Orleans -->
+                  <circle cx="182" cy="242" r="2.5" fill="rgba(85,90,102,0.7)"/>
+                  <text x="150" y="237" font-size="7" fill="rgba(85,90,102,0.8)" font-family="Space Mono,monospace">NEW ORLEANS</text>
+                </g>
+
+                <!-- VESSEL MARKERS (JS will position these) -->
+                <g id="vessels">
+                  <g id="vessel-r1" style="cursor:pointer" onclick="selectContainer('FST-001')">
+                    <circle id="v-r1-pulse" cx="0" cy="0" r="8" fill="rgba(41,199,122,0.2)" stroke="none"/>
+                    <circle id="v-r1" cx="0" cy="0" r="5" fill="#29c77a" stroke="#0d1520" stroke-width="1.5"/>
+                    <text id="v-r1-label" x="0" y="0" font-size="7" fill="white" font-family="Space Mono,monospace" text-anchor="middle" dy="-9" font-weight="700">FST-001</text>
+                  </g>
+                  <g id="vessel-r2" style="cursor:pointer" onclick="selectContainer('FST-002')">
+                    <circle id="v-r2-pulse" cx="0" cy="0" r="8" fill="rgba(41,199,122,0.2)"/>
+                    <circle id="v-r2" cx="0" cy="0" r="5" fill="#29c77a" stroke="#0d1520" stroke-width="1.5"/>
+                    <text id="v-r2-label" x="0" y="0" font-size="7" fill="white" font-family="Space Mono,monospace" text-anchor="middle" dy="-9" font-weight="700">FST-002</text>
+                  </g>
+                  <g id="vessel-r3" style="cursor:pointer" onclick="selectContainer('FST-003')">
+                    <circle id="v-r3-pulse" cx="0" cy="0" r="8" fill="rgba(41,199,122,0.2)"/>
+                    <circle id="v-r3" cx="0" cy="0" r="5" fill="#29c77a" stroke="#0d1520" stroke-width="1.5"/>
+                    <text id="v-r3-label" x="0" y="0" font-size="7" fill="white" font-family="Space Mono,monospace" text-anchor="middle" dy="-9" font-weight="700">FST-003</text>
+                  </g>
+                  <g id="vessel-r4" style="cursor:pointer" onclick="selectContainer('FST-004')">
+                    <circle id="v-r4-pulse" cx="0" cy="0" r="8" fill="rgba(245,166,35,0.2)"/>
+                    <circle id="v-r4" cx="0" cy="0" r="5" fill="#f5a623" stroke="#0d1520" stroke-width="1.5"/>
+                    <text id="v-r4-label" x="0" y="0" font-size="7" fill="white" font-family="Space Mono,monospace" text-anchor="middle" dy="-9" font-weight="700">FST-004</text>
+                  </g>
+                  <g id="vessel-r5" style="cursor:pointer" onclick="selectContainer('FST-005')">
+                    <circle id="v-r5-pulse" cx="0" cy="0" r="8" fill="rgba(74,158,255,0.2)"/>
+                    <circle id="v-r5" cx="0" cy="0" r="5" fill="#4a9eff" stroke="#0d1520" stroke-width="1.5"/>
+                    <text id="v-r5-label" x="0" y="0" font-size="7" fill="white" font-family="Space Mono,monospace" text-anchor="middle" dy="-9" font-weight="700">FST-005</text>
+                  </g>
+                  <g id="vessel-r6" style="cursor:pointer" onclick="selectContainer('FST-006')">
+                    <circle id="v-r6-pulse" cx="0" cy="0" r="8" fill="rgba(41,199,122,0.2)"/>
+                    <circle id="v-r6" cx="0" cy="0" r="5" fill="#29c77a" stroke="#0d1520" stroke-width="1.5"/>
+                    <text id="v-r6-label" x="0" y="0" font-size="7" fill="white" font-family="Space Mono,monospace" text-anchor="middle" dy="-9" font-weight="700">FST-006</text>
+                  </g>
+                  <g id="vessel-r7" style="cursor:pointer" onclick="selectContainer('FST-007')">
+                    <circle id="v-r7-pulse" cx="0" cy="0" r="8" fill="rgba(41,199,122,0.2)"/>
+                    <circle id="v-r7" cx="0" cy="0" r="5" fill="#29c77a" stroke="#0d1520" stroke-width="1.5"/>
+                    <text id="v-r7-label" x="0" y="0" font-size="7" fill="white" font-family="Space Mono,monospace" text-anchor="middle" dy="-9" font-weight="700">FST-007</text>
+                  </g>
+                  <g id="vessel-r8" style="cursor:pointer" onclick="selectContainer('FST-008')">
+                    <circle id="v-r8-pulse" cx="0" cy="0" r="7" fill="rgba(85,90,102,0.2)"/>
+                    <circle id="v-r8" cx="0" cy="0" r="4" fill="#555a66" stroke="#0d1520" stroke-width="1.5"/>
+                    <text id="v-r8-label" x="0" y="0" font-size="7" fill="rgba(255,255,255,0.6)" font-family="Space Mono,monospace" text-anchor="middle" dy="-9" font-weight="700">FST-008</text>
+                  </g>
+                </g>
+              </svg>
+              <div class="ship-tooltip" id="ship-tooltip"></div>
+            </div>
+          </div>
+
+          <!-- DETAIL PANEL -->
+          <div class="ct-detail" id="ct-detail">
+            <div class="ct-detail-header">
+              <div>
+                <div class="ct-detail-title" id="detail-title">—</div>
+                <div style="font-size:11px;color:var(--text2);margin-top:2px;" id="detail-sub">—</div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <span id="detail-status-badge" class="status-badge">—</span>
+                <button class="small-btn" id="detail-ai-btn" onclick="aiOnContainer()">🤖 AI Analyze</button>
+                <button class="small-btn" onclick="document.getElementById('ct-detail').classList.remove('visible')">✕</button>
+              </div>
+            </div>
+            <div class="ct-detail-body">
+              <div class="ct-stat"><div class="ct-stat-label">CARGO TYPE</div><div class="ct-stat-val" id="d-cargo">—</div></div>
+              <div class="ct-stat"><div class="ct-stat-label">VOLUME</div><div class="ct-stat-val" id="d-volume">—</div></div>
+              <div class="ct-stat"><div class="ct-stat-label">SPEED</div><div class="ct-stat-val" id="d-speed">—</div></div>
+              <div class="ct-stat"><div class="ct-stat-label">ETA</div><div class="ct-stat-val" id="d-eta">—</div></div>
+              <div class="ct-stat"><div class="ct-stat-label">ORIGIN</div><div class="ct-stat-val" style="font-size:11px;" id="d-origin">—</div></div>
+              <div class="ct-stat"><div class="ct-stat-label">DESTINATION</div><div class="ct-stat-val" style="font-size:11px;" id="d-dest">—</div></div>
+              <div class="ct-stat"><div class="ct-stat-label">DEPARTED</div><div class="ct-stat-val" id="d-departed">—</div></div>
+              <div class="ct-stat"><div class="ct-stat-label">CARGO VALUE</div><div class="ct-stat-val" id="d-value">—</div></div>
+            </div>
+            <div style="padding:10px 18px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+              <span style="font-size:11px;color:var(--text2);font-family:var(--mono);">ROUTE PROGRESS</span>
+              <div style="flex:1;background:var(--bg3);border-radius:3px;height:6px;overflow:hidden;">
+                <div id="d-progress-bar" style="height:100%;border-radius:3px;background:var(--green);transition:width 0.5s;"></div>
+              </div>
+              <span id="d-progress-pct" style="font-family:var(--mono);font-size:12px;font-weight:700;color:var(--green);min-width:40px;">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- CONTAINER LIST -->
+        <div class="ct-list">
+          <div class="ct-list-header">
+            <div class="ct-list-title">Active Containers</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:4px;">Click to track on map</div>
+          </div>
+          <div class="ct-list-body" id="ct-list-body"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALCULATOR -->
+    <div class="page" id="page-calculator">
+      <div class="page-title">// <span>Fuel Calculator</span> — Cost & Efficiency Analysis</div>
+      <div class="calc-grid">
+        <div>
+          <div class="panel">
+            <div class="panel-header"><div class="panel-title">Route Fuel Cost Estimator</div></div>
+            <div class="panel-body">
+              <div class="form-group">
+                <label class="form-label">DISTANCE (MILES)</label>
+                <input class="form-input" type="number" id="c-distance" value="500" min="1" oninput="calcFuel()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">VEHICLE TYPE</label>
+                <select class="form-select" id="c-vehicle" onchange="calcFuel()">
+                  <option value="7">Heavy Truck (7 MPG)</option>
+                  <option value="14">Medium Van (14 MPG)</option>
+                  <option value="18">Light Truck (18 MPG)</option>
+                  <option value="3.5">Equipment (3.5 MPG)</option>
+                  <option value="custom">Custom MPG</option>
+                </select>
+              </div>
+              <div class="form-group" id="custom-mpg-group" style="display:none;">
+                <label class="form-label">CUSTOM MPG</label>
+                <input class="form-input" type="number" id="c-mpg" value="10" min="0.1" step="0.1" oninput="calcFuel()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">FUEL PRICE ($/GAL)</label>
+                <input class="form-input" type="number" id="c-price" value="3.42" min="0.01" step="0.01" oninput="calcFuel()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">NUMBER OF TRIPS</label>
+                <input class="form-input" type="number" id="c-trips" value="1" min="1" oninput="calcFuel()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">LOAD FACTOR (%)</label>
+                <input class="form-input" type="number" id="c-load" value="100" min="1" max="130" oninput="calcFuel()">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="result-box" style="margin-bottom:16px;">
+            <div class="result-label">ESTIMATED FUEL COST</div>
+            <div class="result-val" id="calc-total">$243.00</div>
+            <div class="result-sub" id="calc-sub">500 mi · 71.4 gal · $3.42/gal</div>
+          </div>
+          <div class="calc-results">
+            <div class="mini-result">
+              <div class="mini-label">GALLONS</div>
+              <div class="mini-val" id="calc-gal" style="color:var(--amber)">71.4</div>
+            </div>
+            <div class="mini-result">
+              <div class="mini-label">COST/MILE</div>
+              <div class="mini-val" id="calc-cpm" style="color:var(--blue)">$0.49</div>
+            </div>
+            <div class="mini-result">
+              <div class="mini-label">CO₂ (lbs)</div>
+              <div class="mini-val" id="calc-co2" style="color:var(--text2)">793</div>
+            </div>
+          </div>
+          <div class="panel" style="margin-top:16px;">
+            <div class="panel-header"><div class="panel-title">Monthly Projection</div></div>
+            <div class="panel-body">
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;justify-content:space-between;">
+                  <span style="font-size:12px;color:var(--text2)">Weekly (5 days)</span>
+                  <span class="mono" style="font-family:var(--mono);font-size:12px;" id="proj-week">—</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;">
+                  <span style="font-size:12px;color:var(--text2)">Monthly (22 days)</span>
+                  <span class="mono" style="font-family:var(--mono);font-size:12px;" id="proj-month">—</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;">
+                  <span style="font-size:12px;color:var(--text2)">Annual (260 days)</span>
+                  <span class="mono" style="font-family:var(--mono);font-size:12px;" id="proj-year">—</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button class="btn" style="margin-top:12px;" onclick="aiAnalyzeCalc()">🤖 AI Optimize This Route</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI ADVISOR -->
+    <div class="page" id="page-advisor">
+      <div class="page-title">// <span>AI Advisor</span> — Fuel Intelligence Engine</div>
+      <div class="ai-layout">
+        <div class="chat-panel">
+          <div class="chat-header">
+            <div class="ai-avatar">⛽</div>
+            <div>
+              <div class="chat-title">FuelOps AI Assistant</div>
+              <div class="chat-sub">Powered by Claude · Fuel Operations Expert</div>
+            </div>
+          </div>
+          <div class="chat-messages" id="chat-messages">
+            <div class="msg ai">
+              <div class="msg-avatar">AI</div>
+              <div class="msg-bubble">Hello, I'm your FuelOps AI advisor. I have full context on your fleet's current fuel consumption, costs, tank levels, and anomalies. Ask me anything — from diagnosing vehicle inefficiencies to planning resupply schedules and optimizing fuel budgets.</div>
+            </div>
+          </div>
+          <div class="chat-input-row">
+            <textarea class="chat-input" id="chat-input" placeholder="Ask about fuel efficiency, costs, anomalies..." rows="1" onkeydown="handleChatKey(event)"></textarea>
+            <button class="send-btn" id="send-btn" onclick="sendChat()">➤</button>
+          </div>
+        </div>
+        <div class="quick-panel">
+          <div class="quick-title">Quick Prompts</div>
+          <button class="quick-btn" onclick="quickPrompt('Why is unit TR-022 showing critical fuel consumption?')">🚨 Diagnose TR-022 anomaly</button>
+          <button class="quick-btn" onclick="quickPrompt('When should I reorder fuel for Tank C and Tank B?')">⛽ Resupply timing advice</button>
+          <button class="quick-btn" onclick="quickPrompt('How can I reduce our monthly fuel spend by 10%?')">💰 Reduce fuel spend 10%</button>
+          <button class="quick-btn" onclick="quickPrompt('Which drivers are most fuel efficient and why?')">🏆 Top driver efficiency</button>
+          <button class="quick-btn" onclick="quickPrompt('Generate a weekly fuel operations summary report')">📊 Weekly ops summary</button>
+          <button class="quick-btn" onclick="quickPrompt('What impact will a $0.30 diesel price increase have on our budget?')">📈 Price impact analysis</button>
+          <button class="quick-btn" onclick="quickPrompt('Recommend a preventive maintenance schedule to improve fleet MPG')">🔧 Maintenance optimization</button>
+
+          <div class="context-card">
+            <div class="context-title">LIVE CONTEXT FED TO AI</div>
+            <div class="context-row">
+              <span class="context-key">Fleet size</span>
+              <span class="context-val">62 vehicles</span>
+            </div>
+            <div class="context-row">
+              <span class="context-key">Diesel price</span>
+              <span class="context-val">$3.42/gal</span>
+            </div>
+            <div class="context-row">
+              <span class="context-key">Tank A</span>
+              <span class="context-val">78% full</span>
+            </div>
+            <div class="context-row">
+              <span class="context-key">Tank B</span>
+              <span class="context-val">34% full</span>
+            </div>
+            <div class="context-row">
+              <span class="context-key">Tank C</span>
+              <span class="context-val">12% ⚠️</span>
+            </div>
+            <div class="context-row">
+              <span class="context-key">Anomalies</span>
+              <span class="context-val">3 active</span>
+            </div>
+            <div class="context-row">
+              <span class="context-key">MTD spend</span>
+              <span class="context-val">$427,100</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONFIG -->
+    <div class="page" id="page-config">
+      <div class="page-title">// <span>Configuration</span> — System Settings</div>
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">Alert Thresholds</div></div>
+          <div class="panel-body">
+            <div class="form-group">
+              <label class="form-label">TANK LOW ALERT (%)</label>
+              <input class="form-input" type="number" value="20" min="5" max="50">
+            </div>
+            <div class="form-group">
+              <label class="form-label">MPG DEVIATION ALERT (%)</label>
+              <input class="form-input" type="number" value="15" min="5" max="50">
+            </div>
+            <div class="form-group">
+              <label class="form-label">DAILY BUDGET CEILING ($)</label>
+              <input class="form-input" type="number" value="22000">
+            </div>
+            <button class="btn" onclick="alert('Settings saved!')">Save Thresholds</button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">Fuel Prices</div></div>
+          <div class="panel-body">
+            <div class="form-group">
+              <label class="form-label">DIESEL #2 ($/GAL)</label>
+              <input class="form-input" type="number" value="3.42" step="0.01">
+            </div>
+            <div class="form-group">
+              <label class="form-label">UNLEADED 87 ($/GAL)</label>
+              <input class="form-input" type="number" value="3.18" step="0.01">
+            </div>
+            <div class="form-group">
+              <label class="form-label">PREMIUM 91 ($/GAL)</label>
+              <input class="form-input" type="number" value="3.65" step="0.01">
+            </div>
+            <button class="btn" onclick="alert('Prices updated!')">Update Prices</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// NAV
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if(el) el.classList.add('active');
+}
+
+// CLOCK
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleTimeString('en-US', {hour12:false});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// CALCULATOR
+document.getElementById('c-vehicle').addEventListener('change', function() {
+  document.getElementById('custom-mpg-group').style.display = this.value === 'custom' ? 'block' : 'none';
+  calcFuel();
+});
+
+function calcFuel() {
+  const dist = parseFloat(document.getElementById('c-distance').value) || 0;
+  const vType = document.getElementById('c-vehicle').value;
+  const mpg = vType === 'custom' ? (parseFloat(document.getElementById('c-mpg').value) || 10) : parseFloat(vType);
+  const price = parseFloat(document.getElementById('c-price').value) || 0;
+  const trips = parseInt(document.getElementById('c-trips').value) || 1;
+  const load = (parseFloat(document.getElementById('c-load').value) || 100) / 100;
+  const adjMpg = mpg / load;
+  const gals = (dist / adjMpg) * trips;
+  const cost = gals * price;
+  const cpm = dist > 0 ? (cost / (dist * trips)) : 0;
+  const co2 = gals * 22.4;
+
+  document.getElementById('calc-total').textContent = '$' + cost.toFixed(2);
+  document.getElementById('calc-gal').textContent = gals.toFixed(1);
+  document.getElementById('calc-cpm').textContent = '$' + cpm.toFixed(3);
+  document.getElementById('calc-co2').textContent = Math.round(co2).toLocaleString();
+  document.getElementById('calc-sub').textContent = `${(dist*trips).toLocaleString()} mi · ${gals.toFixed(1)} gal · $${price.toFixed(2)}/gal`;
+  document.getElementById('proj-week').textContent = '$' + (cost * 5).toFixed(0);
+  document.getElementById('proj-month').textContent = '$' + (cost * 22).toFixed(0);
+  document.getElementById('proj-year').textContent = '$' + (cost * 260).toFixed(0);
+}
+calcFuel();
+
+function aiAnalyzeCalc() {
+  const dist = document.getElementById('c-distance').value;
+  const vType = document.getElementById('c-vehicle').options[document.getElementById('c-vehicle').selectedIndex].text;
+  const price = document.getElementById('c-price').value;
+  const trips = document.getElementById('c-trips').value;
+  const gals = document.getElementById('calc-gal').textContent;
+  const total = document.getElementById('calc-total').textContent;
+  quickPrompt(`Analyze and optimize this route: ${dist} miles, ${vType}, ${trips} trip(s), ${gals} gallons, total cost ${total} at $${price}/gal. How can we reduce fuel cost?`);
+  showPage('advisor', document.querySelectorAll('.nav-item')[4]);
+}
+
+// ALERTS shortcuts
+function aiDiagnose(msg) {
+  quickPrompt(msg);
+  showPage('advisor', document.querySelectorAll('.nav-item')[4]);
+}
+
+// CHAT
+const SYSTEM = `You are FuelOps AI, an expert fuel operations advisor for a commercial trucking and fleet company.
+
+Current fleet context:
+- 62 total vehicles: 28 heavy trucks (target 7 MPG), 14 medium vans (target 14 MPG), 12 light trucks (target 18 MPG), 8 equipment units (target 3.5 MPG)
+- 47 active, 10 in maintenance, 5 critical review
+- Fuel prices: Diesel $3.42/gal, Unleaded $3.18/gal, Premium $3.65/gal
+- Tank A (Diesel): 78% — 11,700 gal of 15,000 capacity
+- Tank B (Unleaded): 34% — 5,100 gal of 15,000 capacity  
+- Tank C (Premium): 12% CRITICAL — 1,800 gal of 15,000 capacity
+- MTD fuel spend: $427,100 (budget: $440,000)
+- Monthly dispensed: 124,860 gallons
+- Active anomalies: TR-022 averaging 4.8 MPG vs 7.0 target (CRITICAL), Tank C low (WARNING), Tank B approaching low (WARNING)
+- Fleet efficiency score: 72% (target: 68%, currently above target)
+
+Respond concisely and professionally. Provide specific, actionable recommendations with numbers where possible. Use bullet points for lists. Be direct and data-driven.`;
+
+const msgs = [];
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if(!text) return;
+  input.value = '';
+  input.style.height = '40px';
+
+  appendMsg('user', text);
+  msgs.push({role:'user', content: text});
+
+  const sendBtn = document.getElementById('send-btn');
+  sendBtn.disabled = true;
+
+  const typingId = appendTyping();
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: SYSTEM,
+        messages: msgs
+      })
+    });
+    const data = await res.json();
+    removeTyping(typingId);
+    const reply = data.content?.[0]?.text || 'Sorry, I could not process that request.';
+    appendMsg('ai', reply);
+    msgs.push({role:'assistant', content: reply});
+  } catch(e) {
+    removeTyping(typingId);
+    appendMsg('ai', 'Connection error. Please check your network and try again.');
+  }
+  sendBtn.disabled = false;
+}
+
+function appendMsg(role, text) {
+  const container = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  const avatar = role === 'ai' ? 'AI' : 'ME';
+  div.innerHTML = `
+    <div class="msg-avatar">${avatar}</div>
+    <div class="msg-bubble">${text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>
+  `;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+function appendTyping() {
+  const container = document.getElementById('chat-messages');
+  const id = 'typing-' + Date.now();
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.id = id;
+  div.innerHTML = `<div class="msg-avatar">AI</div><div class="msg-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return id;
+}
+
+function removeTyping(id) {
+  const el = document.getElementById(id);
+  if(el) el.remove();
+}
+
+function handleChatKey(e) {
+  if(e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendChat();
+  }
+}
+
+function quickPrompt(text) {
+  document.getElementById('chat-input').value = text;
+  showPage('advisor', document.querySelectorAll('.nav-item')[4]);
+  setTimeout(() => sendChat(), 100);
+}
+
+// ============ CONTAINER TRACKING ============
+const CONTAINERS = [
+  { id:'FST-001', name:'Atlantic Horizon', type:'VLCC Tanker', routeId:'r1',
+    route:'Persian Gulf → Rotterdam', origin:'Ras Tanura, Saudi Arabia', dest:'Rotterdam, Netherlands',
+    cargo:'Crude Oil', volume:'80,000 MT', departed:'Mar 2, 2026', eta:'Apr 18, 2026',
+    status:'transit', progress:0.62, speed:'14.2 kts', flag:'LR', value:'$4.2M',
+    via:'via Cape of Good Hope' },
+  { id:'FST-002', name:'Pacific Pioneer', type:'LNG Carrier', routeId:'r2',
+    route:'Persian Gulf → Yokohama', origin:'Abu Dhabi, UAE', dest:'Yokohama, Japan',
+    cargo:'LNG', volume:'65,000 MT', departed:'Mar 14, 2026', eta:'Apr 12, 2026',
+    status:'transit', progress:0.38, speed:'17.8 kts', flag:'MH', value:'$5.1M',
+    via:'via Strait of Malacca' },
+  { id:'FST-003', name:'Gulf Express', type:'Aframax Tanker', routeId:'r3',
+    route:'Houston → Rotterdam', origin:'Houston, Texas, USA', dest:'Rotterdam, Netherlands',
+    cargo:'Refined Diesel', volume:'45,000 MT', departed:'Mar 18, 2026', eta:'Apr 4, 2026',
+    status:'transit', progress:0.71, speed:'13.5 kts', flag:'US', value:'$2.9M',
+    via:'via North Atlantic' },
+  { id:'FST-004', name:'West African Star', type:'Suezmax Tanker', routeId:'r4',
+    route:'Lagos → Rotterdam', origin:'Lagos, Nigeria', dest:'Rotterdam, Netherlands',
+    cargo:'Crude Oil', volume:'55,000 MT', departed:'Mar 16, 2026', eta:'Apr 9, 2026',
+    status:'delayed', progress:0.45, speed:'9.2 kts', flag:'NG', value:'$3.6M',
+    via:'DELAYED — weather hold, +2 days' },
+  { id:'FST-005', name:'Caribbean Carrier', type:'Panamax Tanker', routeId:'r5',
+    route:'Caracas → Houston', origin:'Caracas, Venezuela', dest:'Houston, Texas, USA',
+    cargo:'Heavy Crude', volume:'38,000 MT', departed:'Mar 21, 2026', eta:'Mar 28, 2026',
+    status:'docked', progress:1.0, speed:'0 kts', flag:'VE', value:'$2.1M',
+    via:'DOCKED — unloading in progress' },
+  { id:'FST-006', name:'Suez Star', type:'VLCC Tanker', routeId:'r6',
+    route:'Persian Gulf → Rotterdam', origin:'Kuwait City, Kuwait', dest:'Rotterdam, Netherlands',
+    cargo:'Crude Oil', volume:'75,000 MT', departed:'Mar 5, 2026', eta:'Apr 1, 2026',
+    status:'transit', progress:0.85, speed:'15.1 kts', flag:'KW', value:'$3.9M',
+    via:'via Suez Canal' },
+  { id:'FST-007', name:'Eastern Dragon', type:'LNG Carrier', routeId:'r7',
+    route:'Doha → Shanghai', origin:'Doha, Qatar', dest:'Shanghai, China',
+    cargo:'LNG', volume:'70,000 MT', departed:'Mar 12, 2026', eta:'Apr 8, 2026',
+    status:'transit', progress:0.55, speed:'18.2 kts', flag:'QA', value:'$5.5M',
+    via:'via Malacca Strait' },
+  { id:'FST-008', name:'Nordic Frost', type:'Aframax Tanker', routeId:'r8',
+    route:'New Orleans → Rotterdam', origin:'New Orleans, Louisiana, USA', dest:'Rotterdam, Netherlands',
+    cargo:'Jet Fuel', volume:'32,000 MT', departed:'—', eta:'Apr 22, 2026',
+    status:'loading', progress:0.0, speed:'0 kts', flag:'NO', value:'$2.3M',
+    via:'LOADING — departs Apr 1, 2026' },
+];
+
+let selectedContainerId = null;
+
+function renderContainerList() {
+  const body = document.getElementById('ct-list-body');
+  body.innerHTML = CONTAINERS.map(c => {
+    const statusColor = {transit:'green',delayed:'amber',docked:'blue',loading:'loading'}[c.status];
+    const statusLabel = {transit:'IN TRANSIT',delayed:'DELAYED',docked:'DOCKED',loading:'LOADING'}[c.status];
+    const badgeCls = {transit:'status-ok',delayed:'status-warn',docked:'',loading:''}[c.status];
+    const badgeStyle = c.status === 'docked' ? 'background:rgba(74,158,255,0.15);color:#4a9eff;' :
+                       c.status === 'loading' ? 'background:rgba(85,90,102,0.2);color:var(--text3);' : '';
+    return `<div class="ct-item ${selectedContainerId===c.id?'selected':''}" id="ct-item-${c.id}" onclick="selectContainer('${c.id}')">
+      <div class="ct-item-top">
+        <span class="ct-id">${c.id}</span>
+        <span class="status-badge ${badgeCls}" style="${badgeStyle}font-size:9px;">${statusLabel}</span>
+      </div>
+      <div class="ct-name">${c.name} <span style="color:var(--text3);font-size:11px;font-weight:400;">(${c.type})</span></div>
+      <div class="ct-route-text">${c.route}</div>
+      <div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:2px;">${c.via}</div>
+      <div class="ct-progress-bar"><div class="ct-progress-fill ${statusColor}" style="width:${(c.progress*100).toFixed(0)}%"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:3px;">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--text3);">${c.cargo} · ${c.volume}</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--text3);">ETA ${c.eta}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectContainer(id) {
+  selectedContainerId = id;
+  const c = CONTAINERS.find(x => x.id === id);
+  if(!c) return;
+
+  // Update list selection
+  document.querySelectorAll('.ct-item').forEach(el => el.classList.remove('selected'));
+  const el = document.getElementById('ct-item-' + id);
+  if(el) { el.classList.add('selected'); el.scrollIntoView({block:'nearest'}); }
+
+  // Highlight route on map — dim others
+  ['r1','r2','r3','r4','r5','r6','r7','r8'].forEach(rid => {
+    const path = document.getElementById('route-' + rid);
+    if(path) path.style.opacity = rid === c.routeId ? '1' : '0.25';
+  });
+
+  // Show detail panel
+  const statusMap = {transit:'status-ok',delayed:'status-warn',docked:'',loading:''};
+  const statusLabel = {transit:'IN TRANSIT',delayed:'DELAYED ⚠',docked:'DOCKED ⚓',loading:'LOADING ⏳'};
+  const statusStyle = {transit:'',delayed:'',docked:'background:rgba(74,158,255,0.15);color:#4a9eff;',loading:'background:rgba(85,90,102,0.2);color:var(--text3);'};
+  document.getElementById('detail-title').textContent = c.id + ' — ' + c.name;
+  document.getElementById('detail-sub').textContent = c.type + ' · Flag: ' + c.flag + ' · ' + c.via;
+  const badge = document.getElementById('detail-status-badge');
+  badge.textContent = statusLabel[c.status];
+  badge.className = 'status-badge ' + statusMap[c.status];
+  badge.style.cssText = statusStyle[c.status] || '';
+  document.getElementById('d-cargo').textContent = c.cargo;
+  document.getElementById('d-volume').textContent = c.volume;
+  document.getElementById('d-speed').textContent = c.speed;
+  document.getElementById('d-eta').textContent = c.eta;
+  document.getElementById('d-origin').textContent = c.origin;
+  document.getElementById('d-dest').textContent = c.dest;
+  document.getElementById('d-departed').textContent = c.departed;
+  document.getElementById('d-value').textContent = c.value;
+  const pct = Math.round(c.progress * 100);
+  document.getElementById('d-progress-bar').style.width = pct + '%';
+  document.getElementById('d-progress-bar').style.background = c.status === 'delayed' ? 'var(--amber)' : c.status === 'docked' ? 'var(--blue)' : c.status === 'loading' ? 'var(--text3)' : 'var(--green)';
+  document.getElementById('d-progress-pct').textContent = pct + '%';
+  document.getElementById('d-progress-pct').style.color = c.status === 'delayed' ? 'var(--amber)' : c.status === 'docked' ? 'var(--blue)' : 'var(--green)';
+  document.getElementById('ct-detail').classList.add('visible');
+  document.getElementById('detail-ai-btn').dataset.container = id;
+}
+
+function aiOnContainer() {
+  const id = document.getElementById('detail-ai-btn').dataset.container;
+  const c = CONTAINERS.find(x => x.id === id);
+  if(!c) return;
+  const msg = `Analyze container ${c.id} (${c.name}): ${c.type}, carrying ${c.volume} of ${c.cargo} from ${c.origin} to ${c.dest} ${c.via}. Status: ${c.status.toUpperCase()}. Speed: ${c.speed}, ETA: ${c.eta}, Cargo value: ${c.value}. What should I know and what actions should I take?`;
+  quickPrompt(msg);
+  showPage('advisor', document.querySelectorAll('.nav-item')[5]);
+}
+
+// Position vessel markers on routes using SVG getPointAtLength
+function positionVessels() {
+  const svg = document.getElementById('world-map');
+  if(!svg) return;
+  CONTAINERS.forEach(c => {
+    const path = document.getElementById('route-' + c.routeId);
+    const vCircle = document.getElementById('v-' + c.routeId);
+    const vPulse = document.getElementById('v-' + c.routeId + '-pulse');
+    const vLabel = document.getElementById('v-' + c.routeId + '-label');
+    if(!path || !vCircle) return;
+    const len = path.getTotalLength();
+    const progress = c.status === 'docked' ? 1.0 : c.status === 'loading' ? 0.0 : c.progress;
+    const pt = path.getPointAtLength(len * progress);
+    vCircle.setAttribute('cx', pt.x);
+    vCircle.setAttribute('cy', pt.y);
+    if(vPulse) { vPulse.setAttribute('cx', pt.x); vPulse.setAttribute('cy', pt.y); }
+    if(vLabel) { vLabel.setAttribute('x', pt.x); vLabel.setAttribute('y', pt.y); }
+  });
+}
+
+// Slow drift animation for in-transit vessels
+let driftOffsets = {};
+CONTAINERS.forEach(c => { driftOffsets[c.id] = 0; });
+
+function animateVessels() {
+  const svg = document.getElementById('world-map');
+  if(!svg) return;
+  CONTAINERS.forEach(c => {
+    if(c.status !== 'transit' && c.status !== 'delayed') return;
+    const path = document.getElementById('route-' + c.routeId);
+    const vCircle = document.getElementById('v-' + c.routeId);
+    const vPulse = document.getElementById('v-' + c.routeId + '-pulse');
+    const vLabel = document.getElementById('v-' + c.routeId + '-label');
+    if(!path || !vCircle) return;
+    const len = path.getTotalLength();
+    driftOffsets[c.id] = (driftOffsets[c.id] || 0) + (c.status === 'delayed' ? 0.00008 : 0.00015);
+    const p = Math.min(c.progress + driftOffsets[c.id], 0.999);
+    const pt = path.getPointAtLength(len * p);
+    vCircle.setAttribute('cx', pt.x);
+    vCircle.setAttribute('cy', pt.y);
+    if(vPulse) { vPulse.setAttribute('cx', pt.x); vPulse.setAttribute('cy', pt.y); }
+    if(vLabel) { vLabel.setAttribute('x', pt.x); vLabel.setAttribute('y', pt.y); }
+  });
+  requestAnimationFrame(animateVessels);
+}
+
+// Initialize container tracking when page becomes visible
+function initContainerTracking() {
+  renderContainerList();
+  setTimeout(() => {
+    positionVessels();
+    requestAnimationFrame(animateVessels);
+  }, 100);
+}
+
+// Auto-resize textarea
+document.getElementById('chat-input').addEventListener('input', function() {
+  this.style.height = '40px';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+
+// Patch showPage to init container tracking
+const _origShowPage = showPage;
+window.showPage = function(id, el) {
+  _origShowPage(id, el);
+  if(id === 'containers') setTimeout(initContainerTracking, 50);
+};
+</script>
+</body>
+</html>
